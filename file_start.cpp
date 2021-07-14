@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <time.h>
 #include <vector>
-#include <iostream>
 #include <string>
 #include <math.h>
+
+using namespace std;
 
 clock_t __host_start_time__;
 clock_t __host_end_time__;
