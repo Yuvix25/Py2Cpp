@@ -49,7 +49,7 @@ float pi_approx_integral(int iters){
     for (int i = 0; i<(iters+1); i++){
         divisions.push_back(((double)(i)/(double)((iters+1))));
     };
-    float num = 0.0;
+    int num = 0;
     float width = (divisions[1]*(b-a));
     float division = divisions[0];
     for (auto division_pointer = divisions.begin(); division_pointer != divisions.end(); ++division_pointer){

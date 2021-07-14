@@ -73,7 +73,20 @@ class Py2Cpp:
         res = []
         for node in ast.walk(ctx):
             if type(node) == ast.Call and type(node.func) == ast.Attribute:
-                if self.visit(node.func.value) == arr:
+                if self.visit(node.func.value) == arr and self.visit(node.func.attr) == "append":
+                    res.append(node)
+        return res
+
+    def get_assigns(self, name, ctx):
+        res = []
+        for node in ast.walk(ctx):
+            if type(node) == ast.Assign:
+                if type(node.targets[0]) == ast.Tuple:
+                    node.targets[0] = node.targets[0].elts[0]
+                
+                var_name = self.visit(node.targets[0])
+
+                if name == var_name:
                     res.append(node)
         return res
 
@@ -500,7 +513,7 @@ class Py2Cpp:
 
         for i, var_name in enumerate(ctx.targets[0].elts):
             if type(ctx.value) == ast.Tuple:
-                val = ctx.value[i]
+                val = ctx.value.elts[i]
             else:
                 val = ctx.value
 
@@ -521,6 +534,21 @@ class Py2Cpp:
                     # print(ast.dump(val))
                 else:
                     var_type = self.get_var_type(name, val, self._current_func[-1])
+
+                    if var_type == "int":
+                        for assign in self.get_assigns(name, self._current_func[-1]):
+                            try:
+                                if type(assign.value) == ast.Tuple:
+                                    tmp_val = assign.value.elts[0]
+                                else:
+                                    tmp_val = assign.value
+                                
+                                tmp_type = self.get_actual_type(tmp_val)
+                                if tmp_type in ["float", "double"]:
+                                    var_type = tmp_type
+                                    break
+                            except:
+                                pass
                     
                     if var_type == "":
                         var_type = "auto"
