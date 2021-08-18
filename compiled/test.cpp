@@ -58,15 +58,17 @@ double pi_approx_integral(int iters){
         double x = ((((b-a)*division)+a)+((double)(width)/(double)(2)));
         num += (sqrt((1-pow(x, 2)))*width);
         if (((index%1000)==0)){
-            printf("%.10lf %s%s", (((double)(index)/(double)(divisions.size()))*100), "%", "\n");
+            printf("%s %.10lf %s%s", " ", (((double)(index)/(double)(divisions.size()))*100), "%", "\r");
+            fflush(stdout);
         };
         index += 1;
     };
+    printf("\n");
     return (2*num);
     ;
 };
 int main(){
-    printf("%.30f%s", pi_approx_integral((int)(pow(2, 20))), "\n");
+    printf("%.30f%s", pi_approx_integral((int)(pow(2, 24))), "\n");
     return 0;
     ;
 };

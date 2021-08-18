@@ -460,7 +460,7 @@ class Py2Cpp:
             
         
         if func_name == "printf":
-            end = "\\n"
+            end = '"\\n"'
             for keyword in ctx.keywords:
                 if self.visit(keyword.arg) == "end":
                     end = self.visit(keyword.value)
@@ -509,15 +509,15 @@ class Py2Cpp:
             
                 s = " ".join(s)
                 s += "%s"
-                output = func_name + '("' + s + '", ' + args + ', "' + end + '")'
+                output = func_name + '("' + s + '", ' + args + ', ' + end + ')'
             
             elif len(ctx.args) == 1:
                 arg = ctx.args[0]
                 left = self.visit(arg.left)[1:-1]
                 right = self.visit(arg.right)
-                output = func_name + '("' + left+"%s" + '", ' + right + ', "' + end + '")'
+                output = func_name + '("' + left+"%s" + '", ' + right + ', ' + end + ')'
             else:
-                output = func_name + '("' + end + '")'
+                output = func_name + '(' + end + ')'
         
         elif func_name == "len":
             output = args + ".size()"

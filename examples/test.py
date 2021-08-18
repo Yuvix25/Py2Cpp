@@ -31,14 +31,17 @@ def pi_approx_integral(iters:int) -> float:
         num += (1-x**2)**0.5 * width
 
         if index % 1000 == 0:
-            print(index / len(divisions) * 100, "%")
+            print(" ", index / len(divisions) * 100, "%", end="\r")
+            fflush(stdout)
         index += 1
+    
+    print()
 
     return 2*num
 
 
 def main():
-    print("%.30f" % pi_approx_integral(2**20))
+    print("%.30f" % pi_approx_integral(2**24))
     # perfect_numbers()
 
     return 0
