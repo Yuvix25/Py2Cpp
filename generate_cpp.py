@@ -8,6 +8,7 @@ class Py2Cpp:
         }
         self._type_dict = {
             "str" : "std::string",
+            "float" : "double",
         }
         self._method_rename = {
             ("vector", "append") : "push_back"
@@ -18,6 +19,7 @@ class Py2Cpp:
             "sqrt" : "float",
             "ceil" : "float",
             "pow" : "double",
+            "len" : "int"
         }
         self._func_arg_types = {
             "sqrtf" : ["float"],
@@ -89,6 +91,26 @@ class Py2Cpp:
                 if name == var_name:
                     res.append(node)
         return res
+    
+    def get_all_assigns(self, name, ctx):
+        res = []
+        for node in ast.walk(ctx):
+            if type(node) == ast.Assign:
+                if type(node.targets[0]) == ast.Tuple:
+                    node.targets[0] = node.targets[0].elts[0]
+                
+                var_name = self.visit(node.targets[0])
+
+                if name == var_name:
+                    res.append(node)
+            
+            elif type(node) == ast.AugAssign:
+                
+                var_name = self.visit(node.target)
+
+                if name == var_name:
+                    res.append(node)
+        return res
 
     def contains_return(self, ctx):
         for node in ast.walk(ctx):
@@ -153,6 +175,8 @@ class Py2Cpp:
                     left = "1"
                 elif left in ["float", "double"]:
                     left = "1.0"
+                elif left == "std::string":
+                    left = "str()"
                 else:
                     left = f"{left}()"
                 
@@ -160,10 +184,14 @@ class Py2Cpp:
                     right = "1"
                 elif right in ["float", "double"]:
                     right = "1.0"
+                elif right == "std::string":
+                    right = "str()"
                 else:
                     right = f"{right}()"
-
-                return self.get_type(eval(f"{left} {self.visit(ctx.op)} {right}"))
+                try:
+                    return self.get_type(eval(f"{left} {self.visit(ctx.op)} {right}"))
+                except:
+                    return
             
             elif left != None or right != None:
                 right = right if right != None else left
@@ -204,7 +232,8 @@ class Py2Cpp:
             except:
                 pass
         
-        if var_type == "":
+        numbers = ["int", "float", "double"]
+        if var_type == "" or var_type == "auto" or var_type in numbers:
             if type(val) in [ast.List, ast.Tuple, ast.Set]:
                 for i in val.elts:
                     try:
@@ -214,10 +243,30 @@ class Py2Cpp:
                         pass
             else:
                 try:
-                    var_type = self.get_actual_type(val)
-                except:
+                    # var_type = self.get_actual_type(val)
+                    
+                    assigns = self.get_all_assigns(name, ctx)
+                    for assign in assigns:
+                        new_type = self.get_actual_type(assign.value)
+                        
+                        if type(assign) == ast.AugAssign:
+                            if var_type not in numbers:
+                                continue
+                        
+                        number_type_problem = True
+                        if var_type in numbers and new_type in numbers:
+                            prev_ind = numbers.index(var_type)
+                            new_ind = numbers.index(new_type)
+                            if prev_ind <= new_ind:
+                                number_type_problem = False
+                        
+                        if (var_type == "" or var_type == "auto" or (not number_type_problem)) and new_type != "" and new_type != "auto":
+                            var_type = new_type
+                except Exception as e:
+                    print(e)
                     pass
-
+        
+        
         if var_type == None:
             var_type = ""
 
@@ -231,6 +280,8 @@ class Py2Cpp:
                 except:
                     pass
         
+        if var_type in self._type_dict:
+            var_type = self._type_dict[var_type]
         return var_type
 
 
@@ -244,7 +295,7 @@ class Py2Cpp:
     
 
     def generate_cpp(self):
-        # print(ast.dump(self.original_tree.body[2]))
+        # print(ast.dump(self.original_tree.body[1]))
         file_start = open("file_start.cpp")
         cpp_output = file_start.read() + "\n\n"
         file_start.close()
@@ -441,15 +492,28 @@ class Py2Cpp:
 
         if func_name == "printf":
             s = []
+
+            if len(ctx.args) > 1 or (len(ctx.args) == 1 and not (type(ctx.args[0]) == ast.BinOp and self.get_actual_type(ctx.args[0].left) == "std::string" and type(ctx.args[0].op) == ast.Mod)):
+                for arg in ctx.args:
+                    arg_type = self.get_actual_type(arg)
+                    
+                    if arg_type in self._format_type:
+                        s.append("%" + self._format_type[arg_type])
             
-            for arg in ctx.args:
-                arg_type = self.get_actual_type(arg)
-                
-                if arg_type in self._format_type:
-                    s.append("%" + self._format_type[arg_type])
-            s = " ".join(s)
-            s += "%s"
-            output = func_name + '("' + s + '", ' + args + ', "' + end + '")'
+                s = " ".join(s)
+                s += "%s"
+                output = func_name + '("' + s + '", ' + args + ', "' + end + '")'
+            
+            elif len(ctx.args) == 1:
+                arg = ctx.args[0]
+                left = self.visit(arg.left)[1:-1]
+                right = self.visit(arg.right)
+                output = func_name + '("' + left+"%s" + '", ' + right + ', "' + end + '")'
+            else:
+                output = func_name + '("' + end + '")'
+        
+        elif func_name == "len":
+            output = args + ".size()"
         else:
             output = func_name + "(" + args + ")"
 
@@ -659,11 +723,17 @@ class Py2Cpp:
     def visitArguments(self, ctx: ast.arguments, func=None):
         output = ""
         index = 0
-        no_type_error = ((func.lineno, self.original_text.split("\n")[func.lineno-1]), "SyntaxError", "Must specify argument type.")
+        line_content = self.original_text.split("\n")[func.lineno-1]
         types = self.get_arg_types(ctx)
         for arg in ctx.args:
+            
+            no_type_error = ((func.lineno, line_content), "TranslationError", f"Could not detect type of argument '{arg.arg}'. Please specify it manually like so: `{line_content.replace(arg.arg, arg.arg + ': arg_type')}`")
+
             arg_type = types[index]
-            if func != None and arg_type == "auto":
+            if func != None and arg_type in ["auto", ""]:
+                arg_type = self.get_var_type(arg.arg, None, func)
+            
+            if func != None and arg_type in ["auto", ""]:
                 self.thrower._raise(*no_type_error)
             output += ", "*(output!="") + arg_type + " " + arg.arg
             
