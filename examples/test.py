@@ -38,7 +38,7 @@ def pi_approx_integral(iters:int) -> float:
 
 
 def main():
-    print("%.30f" % pi_approx_integral(2**30))
+    print("%.30f" % pi_approx_integral(2**20))
     # perfect_numbers()
 
     return 0
