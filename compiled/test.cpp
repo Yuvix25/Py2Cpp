@@ -63,8 +63,10 @@ double pi_approx_integral(int iters){
         index += 1;
     };
     return (2*num);
+    ;
 };
 int main(){
     printf("%.30f%s", pi_approx_integral((int)(pow(2, 20))), "\n");
     return 0;
+    ;
 };

@@ -2,7 +2,7 @@ import ast, os, argparse
 from exceptions import *
 
 class Py2Cpp:
-    def __init__(self, file_name, arch="sm_61"):
+    def __init__(self, file_name: str, arch="sm_61"):
         self._predefiend_funcs = {
             "print" : "printf",
         }
@@ -53,7 +53,11 @@ class Py2Cpp:
 
         self.thrower = LineException(self.file_name)
 
-        self.output_name = "./compiled/test.cpp"
+        if "/" in self.file_name:
+            self.output_name = f"./compiled/{self.file_name[self.file_name.rfind('/')+1: self.file_name.rfind('.')]}.cpp"
+        else:
+            self.output_name = f"./compiled/{self.file_name[:self.file_name.rfind('.')]}.cpp"
+
         self.generate_cpp()
         self.compile_cpp()
 
@@ -386,7 +390,7 @@ class Py2Cpp:
     def visitOr(self, ctx: ast.Or):
         return "||"
 
-    def visitBinOp(self, ctx:ast.BinOp):
+    def visitBinOp(self, ctx: ast.BinOp):
         if type(ctx.op) not in (ast.Pow, ast.Div, ast.FloorDiv):
             return "(" + self.visit(ctx.left) + self.visit(ctx.op) + self.visit(ctx.right) + ")"
         elif type(ctx.op) == ast.Div:
@@ -399,6 +403,9 @@ class Py2Cpp:
             else:
                 return f"sqrt({self.visit(ctx.left)})"
 
+    def visitBoolOp(self, ctx: ast.BoolOp):
+        return (" " + self.visit(ctx.op) + " ").join(["(" + self.visit(i) + ")" for i in ctx.values])
+
     def visitUnaryOp(self, ctx: ast.UnaryOp):
         return self.visit(ctx.op) + self.visit(ctx.operand)
 
@@ -409,7 +416,7 @@ class Py2Cpp:
         return output
 
     def visitReturn(self, ctx:ast.Return):
-        return "return " + self.visit(ctx.value)
+        return "return " + self.visit(ctx.value) + ";\n"
         
 
     def visitCompare(self, ctx:ast.Compare):
@@ -789,7 +796,7 @@ class Py2Cpp:
 if __name__ == "__main__":
     # py2cpp = Py2Cpp("./examples/test.py", "sm_86")
     parser = argparse.ArgumentParser(description="Convert Python code to Cpp.")
-    parser.add_argument("-f", "--file", default="./examples/test.py", help="Python file to convert to Cpp.")
+    parser.add_argument("-f", "--file", default="./examples/test.py", help="Python file to convert to CPP.")
     parser.add_argument("-a", "--arch", default="sm_61", help="Compute Capatability.")
 
     args = parser.parse_args()
