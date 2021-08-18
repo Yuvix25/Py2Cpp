@@ -2,7 +2,7 @@ import ast, os, argparse
 from exceptions import *
 
 class Py2Cpp:
-    def __init__(self, file_name: str, arch="sm_61"):
+    def __init__(self, file_name: str):
         self._predefiend_funcs = {
             "print" : "printf",
         }
@@ -43,7 +43,6 @@ class Py2Cpp:
         self._variable_scope = []
 
         self.file_name = file_name
-        self.arch = arch
 
         f = open(self.file_name)
         self.original_text = f.read()
@@ -797,8 +796,7 @@ if __name__ == "__main__":
     # py2cpp = Py2Cpp("./examples/test.py", "sm_86")
     parser = argparse.ArgumentParser(description="Convert Python code to Cpp.")
     parser.add_argument("-f", "--file", default="./examples/test.py", help="Python file to convert to CPP.")
-    parser.add_argument("-a", "--arch", default="sm_61", help="Compute Capatability.")
 
     args = parser.parse_args()
 
-    py2cpp = Py2Cpp(args.file, args.arch)
+    py2cpp = Py2Cpp(args.file)
