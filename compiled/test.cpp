@@ -6,20 +6,20 @@
 
 using namespace std;
 
-clock_t __host_start_time__;
-clock_t __host_end_time__;
+clock_t __start_time__;
+clock_t __stop_time__;
 
-void start_host_timer(){
-    /* Call to start HOST timer which can be stopped with `stop_host_timer`, returns nothing.
+void start_timer(){
+    /* Call to start timer which can be stopped with `stop_timer`, returns nothing.
     */
-    __host_start_time__ = clock();
+    __start_time__ = clock();
 }
 
-float stop_host_timer(){
-    /* Call to stop HOST timer started with `start_host_timer`, returns elapsed time in seconds.
+float stop_timer(){
+    /* Call to stop timer started with `start_timer`, returns elapsed time in seconds.
     */
-    __host_start_time__ = clock();
-    return (__host_end_time__ - __host_start_time__) / CLOCKS_PER_SEC;
+    __start_time__ = clock();
+    return (__stop_time__ - __start_time__) / CLOCKS_PER_SEC;
 }
 
 auto perfect_numbers(){
@@ -65,6 +65,6 @@ double pi_approx_integral(int iters){
     return (2*num);
 };
 int main(){
-    printf("%.30f%s", pi_approx_integral((int)(pow(2, 30))), "\n");
+    printf("%.30f%s", pi_approx_integral((int)(pow(2, 20))), "\n");
     return 0;
 };
