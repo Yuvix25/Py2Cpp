@@ -148,6 +148,8 @@ class Py2Cpp:
             func = self.get_function(self.visit(ctx.func), self.original_tree)
             if func != None:
                 if type(func.returns) != ast.Tuple:
+                    if type(func.returns) == ast.Subscript:
+                        return "vector<" + self.visit(func.returns.value) + ">"
                     return self.visit(func.returns)
             else:
                 if self.visit(ctx.func) in self._func_type_dict:
@@ -217,8 +219,6 @@ class Py2Cpp:
         for call in calls:
             try:
                 func_name = call.func
-                if type(func_name) == ast.Subscript:
-                    func_name = func_name.value
                 
                 args = call.args
                 keywords = call.keywords
@@ -401,7 +401,7 @@ class Py2Cpp:
         elif type(ctx.op) == ast.Div:
             return "((double)(" + self.visit(ctx.left) + ")" + self.visit(ctx.op) + "(double)(" + self.visit(ctx.right) + "))"
         elif type(ctx.op) == ast.FloorDiv:
-            return "floor(((double)(" + self.visit(ctx.left) + ")" + self.visit(ctx.op) + "(double)(" + self.visit(ctx.right) + ")))"
+            return "floor(((double)(" + self.visit(ctx.left) + ")/(double)(" + self.visit(ctx.right) + ")))"
         elif type(ctx.op) == ast.Pow:
             if self.visit(ctx.right) != "0.5":
                 return f"pow({self.visit(ctx.left)}, {self.visit(ctx.right)})"
@@ -565,8 +565,11 @@ class Py2Cpp:
 
     def visitAnnAssign(self, ctx: ast.AnnAssign):
         if type(ctx.value) == ast.List:
-            arr_type = f"vector<{self.visit(ctx.annotation)}>"
-            out = self.visitArrayAssign(ctx.target, arr_type)
+            if type(ctx.annotation) == ast.Subscript:
+                arr_type = "vector<" + self.visit(ctx.annotation.value) + ">"
+            else:
+                arr_type = self.visit(ctx.annotation)
+            out = self.visitArrayAssign(ctx.target, arr_type, ctx.value)
             self._variable_scope[-1][self.visit(ctx.target)] = (arr_type,)
             return out
         else:
@@ -601,7 +604,8 @@ class Py2Cpp:
                         line_content = self.original_text.split("\n")[ctx.lineno-1]
                         self.thrower._raise((ctx.lineno, line_content), "TranslationError", f"Could not detect type of array '{name}'. Please specify it manually like so: `{self.remove_spaces(line_content).replace(name, name + ': type')}`")
                     
-                    arr_type = f"vector<{arr_type}>"
+                    if not arr_type.startswith("vector<"):
+                        arr_type = f"vector<{arr_type}>"
 
                     output += self.visitArrayAssign(var_name, arr_type, val)
                     self._variable_scope[-1][name] = (arr_type,)
@@ -620,7 +624,7 @@ class Py2Cpp:
                                     tmp_val = assign.value
                                 
                                 tmp_type = self.get_actual_type(tmp_val)
-                                if tmp_type in ["float", "double"]:
+                                if tmp_type in ["float", "double"] or var_type in ["", "auto"]:
                                     var_type = tmp_type
                                     break
                             except:
@@ -652,13 +656,14 @@ class Py2Cpp:
     def visitIf(self, ctx:ast.If):
         output = "if ("
         output += self.visit(ctx.test) + ")"
-        output += "{\n" + self.visit(ctx.body) + "}"
+        output += "{\n" + self.visit(ctx.body) + "\n}"
 
         for orelse in ctx.orelse:
             if type(orelse) == ast.If:
                 output += "\nelse " + self.visit(orelse)
             else:
-                output += "\nelse {\n" + self.visit(orelse) + "}"
+                print(ast.dump(orelse))
+                output += "\nelse {\n" + self.visit(orelse) + ";\n}"
         return output
 
 
@@ -698,9 +703,13 @@ class Py2Cpp:
                 arr_type = self._variable_scope[-1][iterator][0]
                 arr_type = arr_type[arr_type.find("<")+1:-1]
 
-                output = f"{arr_type} {var_name} = {iterator}[0];\n"
-                self._variable_scope[-1][var_name] = (arr_type,)
-                output += f"for (auto {var_name}_pointer = {iterator}.begin(); {var_name}_pointer != {iterator}.end(); ++{var_name}_pointer)" + "{\n" + f"    {var_name} = *{var_name}_pointer;\n" + self.visit(ctx.body) + "}"
+                if var_name not in self._variable_scope[-1]:
+                    output = f"{arr_type} {var_name} = {iterator}[0];\n"
+                    self._variable_scope[-1][var_name] = (arr_type,)
+                else:
+                    output = f"{var_name} = {iterator}[0];\n"
+                
+                output += f"for (vector<{arr_type}>::iterator {var_name}_pointer = {iterator}.begin(); {var_name}_pointer != {iterator}.end(); ++{var_name}_pointer)" + "{\n" + f"    {var_name} = *{var_name}_pointer;\n" + self.visit(ctx.body) + "}"
 
         
         return output
@@ -715,7 +724,7 @@ class Py2Cpp:
         for arg in ctx.args:
             if arg.annotation != None:
                 if type(arg.annotation) == ast.Subscript:
-                    types.append(self.visit(arg.annotation.value).replace('"', '').replace("'", "") + "*")
+                    types.append("vector<" + self.visit(arg.annotation.value).replace('"', '').replace("'", "") + ">")
                 else:
                     types.append(self.visit(arg.annotation).replace('"', '').replace("'", ""))
             
@@ -762,7 +771,10 @@ class Py2Cpp:
         name = ctx.name
         
         for arg in ctx.args.args:
-            self._variable_scope[-1][arg.arg] = (self.visit(arg.annotation),)
+            if type(arg.annotation) == ast.Subscript:
+                self._variable_scope[-1][arg.arg] = ("vector<" + self.visit(arg.annotation.value) + ">",)
+            else:
+                self._variable_scope[-1][arg.arg] = (self.visit(arg.annotation),)
         
         args = self.visitArguments(ctx.args, ctx)
         if ctx.returns != None:
@@ -775,7 +787,10 @@ class Py2Cpp:
                 
                 ret_type = " ".join(ret_type)
             else:
-                ret_type = self.visit(ctx.returns)
+                if type(ctx.returns) == ast.Subscript:
+                    ret_type = "vector<" + self.visit(ctx.returns.value).replace('"', '').replace("'", "") + ">"
+                else:
+                    ret_type = self.visit(ctx.returns)
                 if ret_type in self._type_dict:
                     ret_type = self._type_dict[ret_type]
         else:

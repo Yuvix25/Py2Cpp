@@ -21,3 +21,17 @@ float stop_timer(){
     __start_time__ = clock();
     return (__stop_time__ - __start_time__) / CLOCKS_PER_SEC;
 }
+
+
+template <typename T>
+vector<T>& operator +=(vector<T>& vector1, const vector<T>& vector2) {
+    vector1.insert(vector1.end(), vector2.begin(), vector2.end());
+    return vector1;
+}
+
+
+template <typename T>
+vector<T> operator+(vector<T> vector1, const vector<T>& vector2) {
+    vector1 += vector2;
+    return vector1;
+}

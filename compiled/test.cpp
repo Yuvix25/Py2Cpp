@@ -22,6 +22,20 @@ float stop_timer(){
     return (__stop_time__ - __start_time__) / CLOCKS_PER_SEC;
 }
 
+
+template <typename T>
+vector<T>& operator +=(vector<T>& vector1, const vector<T>& vector2) {
+    vector1.insert(vector1.end(), vector2.begin(), vector2.end());
+    return vector1;
+}
+
+
+template <typename T>
+vector<T> operator+(vector<T> vector1, const vector<T>& vector2) {
+    vector1 += vector2;
+    return vector1;
+}
+
 auto perfect_numbers(){
     int num = 2;
     while (true){
@@ -30,13 +44,16 @@ auto perfect_numbers(){
         for (int i = 2; i<ceil((double)(num_sqrt)); i++){
             if ((i==num_sqrt)){
                 sum += i;
+            
             }
             else if (((num%i)==0)){
                 sum += (i+((double)(num)/(double)(i)));
+            
             };
         };
         if ((sum==num)){
             printf("%d%s", num, "\n");
+        
         };
         num += 1;
     };
@@ -53,13 +70,14 @@ double pi_approx_integral(int iters){
     double width = (divisions[1]*(b-a));
     int index = 0;
     double division = divisions[0];
-    for (auto division_pointer = divisions.begin(); division_pointer != divisions.end(); ++division_pointer){
+    for (vector<double>::iterator division_pointer = divisions.begin(); division_pointer != divisions.end(); ++division_pointer){
         division = *division_pointer;
         double x = ((((b-a)*division)+a)+((double)(width)/(double)(2)));
         num += (sqrt((1-pow(x, 2)))*width);
         if (((index%1000)==0)){
-            printf("%s %.10lf %s%s", " ", (((double)(index)/(double)(divisions.size()))*100), "%", "\r");
+            printf("%s %.10lf %s%s", " Calculating... ", (((double)(index)/(double)(divisions.size()))*100), "%", "\r");
             fflush(stdout);
+        
         };
         index += 1;
     };
@@ -67,8 +85,71 @@ double pi_approx_integral(int iters){
     return (2*num);
     ;
 };
+vector<int> quick_sort(vector<int> arr){
+    int n = arr.size();
+    if ((n<=1)){
+        return arr;
+        ;
+    
+    };
+    int mid = arr[floor(((double)(n)/(double)(2)))];
+    vector<int> lower;
+    ;
+    vector<int> higher;
+    ;
+    vector<int> same;
+    ;
+    int i = arr[0];
+    for (vector<int>::iterator i_pointer = arr.begin(); i_pointer != arr.end(); ++i_pointer){
+        i = *i_pointer;
+        if ((i<mid)){
+            lower.push_back(i);
+        
+        }
+        else if ((i>mid)){
+            higher.push_back(i);
+        
+        }
+        else if ((i==mid)){
+            same.push_back(i);
+        
+        };
+    };
+    return ((quick_sort((vector<int>)(lower))+same)+quick_sort((vector<int>)(higher)));
+    ;
+};
 int main(){
-    printf("%.30f%s", pi_approx_integral((int)(pow(2, 24))), "\n");
+    printf("%s%s", "Pi:", "\n");
+    printf("Pi approximation: %.30f%s", pi_approx_integral((int)(pow(2, 24))), "\n");
+    printf("\n");
+    printf("%s%s", "Array sorting using quick sort:", "\n");
+    vector<int> x;
+    x.push_back(2);
+    x.push_back(4);
+    x.push_back(5);
+    x.push_back(3);
+    x.push_back(7);
+    x.push_back(2);
+    x.push_back(4);
+    x.push_back(2);
+    x.push_back(1);
+    x.push_back(6);
+    x.push_back(4);
+    printf("%s%s", "Orinal array:", "\n");
+    int i = x[0];
+    for (vector<int>::iterator i_pointer = x.begin(); i_pointer != x.end(); ++i_pointer){
+        i = *i_pointer;
+        printf("%d%s", i, ", ");
+    };
+    printf("\n");
+    vector<int> new_arr = quick_sort((vector<int>)(x));
+    printf("%s%s", "Sorted array:", "\n");
+    i = new_arr[0];
+    for (vector<int>::iterator i_pointer = new_arr.begin(); i_pointer != new_arr.end(); ++i_pointer){
+        i = *i_pointer;
+        printf("%d%s", i, ", ");
+    };
+    printf("\n");
     return 0;
     ;
 };
