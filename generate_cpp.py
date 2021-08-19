@@ -288,6 +288,12 @@ class Py2Cpp:
         return var_type
 
 
+    def remove_spaces(self, string):
+        i = 0
+        while string[i] in [" ", "\t"]:
+            i += 1
+        return string[i:]
+
     def visit(self, ctx):
         func_name = f"visit{self.get_type(ctx, False)}"
 
@@ -416,7 +422,6 @@ class Py2Cpp:
 
     def visitReturn(self, ctx:ast.Return):
         return "return " + self.visit(ctx.value) + ";\n"
-        
 
     def visitCompare(self, ctx:ast.Compare):
         output = ""
@@ -591,11 +596,12 @@ class Py2Cpp:
             if name not in self._variable_scope[-1]:
                 if type(val) == ast.List:
                     arr_type = self.get_var_type(name, val, self._current_func[-1])
-
-                    arr_type = f"vector<{arr_type}>"
                     
                     if arr_type == "":
-                        self.thrower._raise((ctx.lineno, self.original_text.split("\n")[ctx.lineno-1]), "SyntaxError", "Must specify array type.")
+                        line_content = self.original_text.split("\n")[ctx.lineno-1]
+                        self.thrower._raise((ctx.lineno, line_content), "TranslationError", f"Could not detect type of array '{name}'. Please specify it manually like so: `{self.remove_spaces(line_content).replace(name, name + ': type')}`")
+                    
+                    arr_type = f"vector<{arr_type}>"
 
                     output += self.visitArrayAssign(var_name, arr_type, val)
                     self._variable_scope[-1][name] = (arr_type,)
@@ -632,7 +638,8 @@ class Py2Cpp:
                     arr_type = self.get_var_type(name, val, self._current_func[-1])
                     
                     if arr_type == "":
-                        self.thrower._raise((ctx.lineno, self.original_text.split("\n")[ctx.lineno-1]), "SyntaxError", "Must specify array type.")
+                        line_content = self.original_text.split("\n")[ctx.lineno-1]
+                        self.thrower._raise((ctx.lineno, line_content), "TranslationError", f"Could not detect type of array '{name}'. Please specify it manually like so: `{self.remove_spaces(line_content).replace(name, name + ': type')}`")
                     
                     output += self.visitArrayAssign(var_name, arr_type, val)
                 else:
@@ -733,7 +740,7 @@ class Py2Cpp:
         types = self.get_arg_types(ctx)
         for arg in ctx.args:
             
-            no_type_error = ((func.lineno, line_content), "TranslationError", f"Could not detect type of argument '{arg.arg}'. Please specify it manually like so: `{line_content.replace(arg.arg, arg.arg + ': arg_type')}`")
+            no_type_error = ((func.lineno, line_content), "TranslationError", f"Could not detect type of argument '{arg.arg}'. Please specify it manually like so: `{self.remove_spaces(line_content).replace(arg.arg, arg.arg + ': arg_type')}`")
 
             arg_type = types[index]
             if func != None and arg_type in ["auto", ""]:
@@ -794,8 +801,8 @@ class Py2Cpp:
 
 if __name__ == "__main__":
     # py2cpp = Py2Cpp("./examples/test.py", "sm_86")
-    parser = argparse.ArgumentParser(description="Convert Python code to Cpp.")
-    parser.add_argument("-f", "--file", default="./examples/test.py", help="Python file to convert to CPP.")
+    parser = argparse.ArgumentParser(description="Convert Python code to C++.")
+    parser.add_argument("-f", "--file", default="./examples/test.py", help="Python file to convert to C++.")
 
     args = parser.parse_args()
 
