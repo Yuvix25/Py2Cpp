@@ -57,6 +57,7 @@ auto perfect_numbers(){
         };
         num += 1;
     };
+
 };
 double pi_approx_integral(int iters){
     int a = -1;
@@ -84,6 +85,8 @@ double pi_approx_integral(int iters){
     printf("\n");
     return (2*num);
     ;
+
+return double();
 };
 vector<int> quick_sort(vector<int> arr){
     int n = arr.size();
@@ -117,6 +120,30 @@ vector<int> quick_sort(vector<int> arr){
     };
     return ((quick_sort((vector<int>)(lower))+same)+quick_sort((vector<int>)(higher)));
     ;
+
+return vector<int>();
+};
+int binary_search(vector<int> arr, int key){
+    int n = arr.size();
+    int low = 0;
+    int high = arr.size();
+    while ((low<high)){
+        auto mid = floor(((double)((low+high))/(double)(2)));
+        if ((arr[mid]<key)){
+            low = (mid+1);
+        
+        }
+        else if ((arr[mid]>key)){
+            high = (mid-1);
+        
+        }
+        else {
+        return mid;
+        ;
+        };
+    };
+
+return int();
 };
 int main(){
     printf("%s%s", "Pi:", "\n");
@@ -150,6 +177,10 @@ int main(){
         printf("%d%s", i, ", ");
     };
     printf("\n");
+    int index = binary_search((vector<int>)(new_arr), (int)(4));
+    printf("%s %d%s", "The index of 4, found using binary search, is:", index, "\n");
     return 0;
     ;
+
+return int();
 };

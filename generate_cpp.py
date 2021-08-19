@@ -809,7 +809,9 @@ class Py2Cpp:
         
         self._needs_free.pop(-1)
         self._current_func.pop(-1)
-        output += "}"
+        if ret_type != "auto":
+            output += f"\nreturn {ret_type}();"
+        output += "\n}"
 
         self._variable_scope.pop(-1)
         return  output

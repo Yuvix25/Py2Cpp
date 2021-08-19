@@ -63,6 +63,20 @@ def quick_sort(arr:int[0]) -> int[0]:
     return quick_sort(lower) + same + quick_sort(higher)
 
 
+def binary_search(arr:int[0], key:int) -> int:
+    n = len(arr)
+    low = 0
+    high = len(arr)
+    while low < high:
+        mid = (low + high) // 2
+        if arr[mid] < key:
+            low = mid + 1
+        elif arr[mid] > key:
+            high = mid - 1
+        else:
+            return mid
+
+
 def main():
     print("Pi:")
     print("Pi approximation: %.30f" % pi_approx_integral(2**24))
@@ -82,5 +96,8 @@ def main():
     for i in new_arr:
         print(i, end=", ")
     print()
+
+    index = binary_search(new_arr, 4)
+    print("The index of 4, found using binary search, is:", index)
 
     return 0
